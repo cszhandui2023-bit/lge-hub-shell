@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>LGECH 통합 대시보드 모바일</title>
+<style>
+  :root{
+    --lg:#A50034; --ink:#1a1a2e; --sub:#666; --bg:#f4f5f7; --card:#fff;
+    --gold:#b8860b; --gold2:#8a6508; --daily:#9b1b30; --weekly:#5b3a8e;
+    --market:#0e7490; --saif:#a16207;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{font-family:-apple-system,"PingFang SC","Apple SD Gothic Neo","Noto Sans KR",sans-serif;background:var(--bg);color:var(--ink)}
+  /* ---------- HOME ---------- */
+  #home{padding:calc(env(safe-area-inset-top) + 14px) 14px calc(env(safe-area-inset-bottom) + 24px);max-width:560px;margin:0 auto}
+  .hero{background:linear-gradient(135deg,#A50034 0%,#7a0028 100%);border-radius:16px;padding:18px 16px;color:#fff;margin-bottom:18px;box-shadow:0 6px 18px rgba(165,0,52,.25)}
+  .hero h1{font-size:19px;letter-spacing:.2px}
+  .hero p{font-size:12px;opacity:.85;margin-top:6px;line-height:1.5}
+  .sec-chip{display:inline-block;font-size:11px;font-weight:800;letter-spacing:1.2px;color:#fff;padding:5px 12px;border-radius:20px;margin:20px 0 10px}
+  .card{background:var(--card);border-radius:14px;padding:14px 15px;margin-bottom:11px;box-shadow:0 2px 10px rgba(0,0,0,.06);border-left:4px solid var(--ac,#A50034);cursor:pointer;transition:transform .1s}
+  .card:active{transform:scale(.98)}
+  .card .row1{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .card .t{font-size:15.5px;font-weight:700;color:var(--ac,#A50034)}
+  .card .zh{font-size:13px;color:var(--ink);font-weight:600}
+  .badge{font-size:9.5px;font-weight:800;color:#fff;background:#e0245e;padding:2px 7px;border-radius:10px;letter-spacing:.5px}
+  .badge.new{background:#0e7490}
+  .badge.lock{background:#444}
+  .card .d{font-size:11.5px;color:var(--sub);margin-top:6px;line-height:1.55}
+  .card .open{font-size:12px;font-weight:700;color:var(--ac,#A50034);margin-top:8px}
+  .foot{text-align:center;font-size:10.5px;color:#aaa;margin-top:26px;line-height:1.6}
+  /* ---------- MODULE VIEW ---------- */
+  #mod{display:none;position:fixed;inset:0;background:#e9eaf0;flex-direction:column}
+  #mod.on{display:flex}
+  #topbar{background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.12);padding:calc(env(safe-area-inset-top) + 8px) 10px 8px;display:flex;align-items:center;gap:8px;z-index:20}
+  #backBtn{width:34px;height:34px;border:none;border-radius:10px;background:#f0f0f4;font-size:17px;color:#333;flex:none}
+  #mtitle{flex:1;font-size:14px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tbtn{border:none;border-radius:9px;background:#f0f0f4;color:#333;font-size:12.5px;font-weight:700;height:34px;min-width:34px;padding:0 9px}
+  .tbtn.acc{background:var(--lg);color:#fff}
+  #zoomLbl{font-size:11.5px;font-weight:700;color:#555;min-width:34px;text-align:center}
+  #frameWrap{flex:1;overflow:auto;position:relative;-webkit-overflow-scrolling:touch}
+  #spinner{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:#888;font-size:13px;z-index:5}
+  .spin{width:34px;height:34px;border:3px solid #ddd;border-top-color:var(--lg);border-radius:50%;margin:0 auto 10px;animation:sp 1s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  #dash{border:none;transform-origin:0 0;display:block;background:#fff}
+  #err{display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:#888;font-size:13px;width:78%;line-height:1.7;z-index:6}
+  #err a{color:var(--lg);font-weight:700}
+  /* ---------- FAV TIP (WeChat only) ---------- */
+  .favtip{display:none;background:#fff7e6;border:1px solid #ffe08a;color:#8a6508;border-radius:10px;padding:9px 12px;margin-bottom:14px;font-size:12px;line-height:1.5}
+  .favtip.on{display:block}
+  .favtip b{color:#a16207}
+</style>
+</head>
+<body>
+
+<div id="home">
+  <div class="hero">
+    <h1>LGECH 통합 대시보드</h1>
+    <p>모듈을 누르면 해당 대시보드로 이동합니다 · 모바일 최적화 뷰어</p>
+  </div>
+  <div class="favtip" id="favtip">📌 <b>微信里点右上角 ··· → 收藏</b>，以后从「我 → 收藏」一步点开本页，直接看全部 16 个看板，不用每次复制链接。</div>
+  <div id="cards"></div>
+  <div class="foot">LGE Dashboard Hub Mobile · 업데이트는 각 대시보드 원본 기준<br>화면 상단 ± 버튼으로 확대/축소 가능</div>
+</div>
+
+<div id="mod">
+  <div id="topbar">
+    <button id="backBtn" onclick="goHome()">←</button>
+    <div id="mtitle"></div>
+    <button class="tbtn" onclick="zoom(-1)">−</button>
+    <span id="zoomLbl">1.0×</span>
+    <button class="tbtn" onclick="zoom(1)">＋</button>
+    <button class="tbtn acc" onclick="openExt()" title="새 창">⧉</button>
+  </div>
+  <div id="frameWrap">
+    <div id="spinner"><div class="spin"></div>LOADING…</div>
+    <div id="err">이 페이지를 표시할 수 없습니다.<br><a id="errLink" href="#" target="_blank">새 창에서 열기 →</a></div>
+    <iframe id="dash" title="dashboard"></iframe>
+  </div>
+</div>
+
+<script>
+var MODULES=[
+ {id:"seif",   g:"SEIF · WEEKLY", c:"#a16207", badge:"중요", t:"🔗 SEIF All in One",        zh:"赛夫 SEiF 综合仪表板（全渠道整合）", d:"赛夫 SEiF 综合仪表板 / 全渠道整合",                u:"https://seif-online-offline-0904-4500.pages.dev/"},
+ {id:"so1p",   g:"SEIF · WEEKLY", c:"#a16207", badge:"중요", t:"🏪 1P+징둥 SELL OUT",       zh:"1P + 京东 销售出库",                d:"1P 채널 및 京东 오프라인 sell-out 실적 종합",      u:"https://lge-618-dashboard.pages.dev/"},
+ {id:"jdoff",  g:"SEIF · WEEKLY", c:"#a16207", badge:"중요", t:"🏬 징둥 OFFLINE 현황",      zh:"京东 线下情况",                     d:"京东 슈퍼몰 / 오프라인 채널별 매출 및 SKU 동향",  u:"https://saifu-dashboard-v35.pages.dev/"},
+ {id:"d2c",    g:"DAILY",  c:"#9b1b30", t:"📊 D2C 매출 분석",        zh:"D2C 销售额分析",                 d:"D2C 채널별 매출 / 일별 추이 / 전환율 / 주요 KPI",        u:"https://d2c-dashboard-may18.pages.dev/"},
+ {id:"gdmi",   g:"DAILY",  c:"#9b1b30", t:"🏬 법인 매출/실판매 진척", zh:"法人销售额 / 实际销售进度",      d:"전 법인 GDMI 판매 진척률 · 채널별 누적 실적",            u:"https://lge-june-sales-2606.pages.dev/"},
+ {id:"news",   g:"WEEKLY", c:"#5b3a8e", t:"📰 LG 전제품 RP 뉴스",    zh:"LG 全产品 RP 新闻",              d:"전제품 보도자료 · RP 이슈 통합 브리핑 (매주 수요일)",    u:"https://lge-briefing-0709.pages.dev/"},
+ {id:"psi",    g:"WEEKLY", c:"#5b3a8e", badge:"신규", t:"📈 PSI Trends 관리",      zh:"PSI 趋势分析",                   d:"GDMI SCM W33 · 재고 / 판매 / 입고 PSI 추이 분석",        u:"https://gdmi-scm-lgech-w33-20260817.pages.dev/"},
+ {id:"d11",    g:"WEEKLY", c:"#5b3a8e", badge:"신규", t:"🛒 双11 채널별 계획",     zh:"双11 渠道别计划",                d:"11.11 프로모션 채널별 운영 계획",                        u:"https://lge-1111-channel-plan-20261012.pages.dev/"},
+ {id:"styler", g:"MONTHLY",c:"#b45309", t:"👔 스타일러 매출 분석",   zh:"Styler 销售额分析",              d:"월간 sell-out / 지역별 실적 (매월 초)",                  u:"https://styler-sellout-report.pages.dev/"},
+ {id:"it",     g:"MONTHLY",c:"#b45309", t:"🖥️ IT 매출 대시보드",     zh:"IT 销售额仪表板",                d:"IT 카테고리 매출 모니터링 / 채널별 실적",                u:"https://jd-monitor-dashboard.pages.dev/"},
+ {id:"coia",   g:"MONTHLY",c:"#b45309", badge:"🔒2026", t:"⚙️ COI 자동화",    zh:"COI 自动化仪表板",               d:"지속가능성 지표 자동화 / ESG KPI · 비밀번호 2026",       u:"https://coi-apr-y26.pages.dev/"},
+ {id:"coip",   g:"MONTHLY",c:"#b45309", badge:"🔒2026", t:"💹 COI 핵심고객",  zh:"COI 核心客户分析",               d:"COI 고객별 P&L 분석 / 수익성 KPI · 비밀번호 2026",       u:"https://coi-pnl-dashboard.pages.dev/"},
+ {id:"avc",    g:"MARKET · ANALYSIS",c:"#0e7490", t:"🧊 중국 HS 제품 · AVC 시장", zh:"中国HS产品 · AVC 市场占位单页总览", d:"중국 HS 제품 시장 AVC 슬롯 분석 / 시장 포지셔닝 요약", u:"https://avc-market-slots-20260921.pages.dev/#tab=ref"},
+ {id:"ma",     g:"MARKET · ANALYSIS",c:"#0e7490", badge:"신규", t:"📊 Market Analysis · 중국 HS 제품", zh:"中国HS产品市场分析总览", d:"중국 데이터 및 분석 페이지 종합 모음", u:"https://market-analysis-china-20260922.pages.dev/"},
+ {id:"price",  g:"MARKET · ANALYSIS",c:"#0e7490", badge:"신규", t:"💰 LGECH 판가관리",       zh:"LGECH 价格管理仪表板（26年8月实绩）", d:"26년 8월 판가 실적 / 가격 관리 현황 분석", u:"https://price-mgmt-aug2026-0923.pages.dev/"},
+ {id:"apms",   g:"MARKET · ANALYSIS",c:"#0e7490", badge:"신규", t:"📢 APMS 광고비용 효율 CONTROL ROOM", zh:"APMS 广告费用效率控制室", d:"APMS 광고비용 효율 분석 / 마케팅 효율 모니터링", u:"https://apms-marketing-efficiency-20260923.pages.dev/"}
+];
+var GROUP_ORDER=["SEIF · WEEKLY","DAILY","WEEKLY","MONTHLY","MARKET · ANALYSIS"];
+var GROUP_KO={"SEIF · WEEKLY":"#a16207","DAILY":"#9b1b30","WEEKLY":"#5b3a8e","MONTHLY":"#b45309","MARKET · ANALYSIS":"#0e7490"};
+
+/* ---------- HOME RENDER ---------- */
+(function(){
+  if(/MicroMessenger/i.test(navigator.userAgent)){var ft=document.getElementById("favtip");if(ft)ft.classList.add("on");}
+  var html="";
+  GROUP_ORDER.forEach(function(g){
+    var ms=MODULES.filter(function(m){return m.g===g});
+    if(!ms.length)return;
+    html+='<div><span class="sec-chip" style="background:'+GROUP_KO[g]+'">'+g+'</span></div>';
+    ms.forEach(function(m){
+      var b=m.badge?'<span class="badge'+(m.badge==="신규"?" new":"")+'">'+m.badge+'</span>':"";
+      html+='<div class="card" style="--ac:'+m.c+'" onclick="openMod(\''+m.id+'\')">'
+        +'<div class="row1"><span class="t">'+m.t+'</span><span class="zh">'+m.zh+'</span>'+b+'</div>'
+        +'<div class="d">'+m.d+'</div><div class="open">열기 →</div></div>';
+    });
+  });
+  document.getElementById("cards").innerHTML=html;
+})();
+
+/* ---------- ROUTING ---------- */
+var cur=null, ZOOMS=[1,1.5,2,3], DEF_LAYOUT=1280;
+function openMod(id){location.hash="m="+id;}
+function goHome(){history.back();}
+function parseHash(){
+  var h=location.hash.replace(/^#/,""),m=null;
+  if(h.indexOf("m=")===0){var id=h.slice(2);for(var i=0;i<MODULES.length;i++)if(MODULES[i].id===id)m=MODULES[i];}
+  return m;
+}
+function onHash(){
+  var m=parseHash();
+  if(!m){
+    document.getElementById("mod").classList.remove("on");
+    if(cur){document.getElementById("dash").removeAttribute("src");cur=null;}
+    window.scrollTo(0,0);
+    return;
+  }
+  cur=m;
+  document.getElementById("home").style.display="none";
+  document.getElementById("mod").classList.add("on");
+  document.getElementById("mtitle").textContent=m.t.replace(/^[^\s]+\s/,"")+" · "+m.zh;
+  var f=document.getElementById("dash");
+  f.dataset.layout=localStorage.getItem("lw_"+m.id)||DEF_LAYOUT;
+  zIdx=Math.max(0,ZOOMS.indexOf(parseFloat(localStorage.getItem("z_"+m.id)||"1")));
+  if(f.getAttribute("src")!==m.u){
+    document.getElementById("spinner").style.display="block";
+    clearTimeout(hideTmr);hideTmr=setTimeout(hideSpin,6000);
+    f.setAttribute("src",m.u);
+  }
+  applyScale();
+}
+window.addEventListener("hashchange",onHash);
+
+/* ---------- SCALE-TO-FIT VIEWER ---------- */
+var zIdx=0;
+function applyScale(){
+  if(!cur)return;
+  var wrap=document.getElementById("frameWrap"),f=document.getElementById("dash");
+  var W=parseInt(f.dataset.layout)||DEF_LAYOUT;
+  var s=(wrap.clientWidth/W)*ZOOMS[zIdx];
+  f.style.width=W+"px";
+  f.style.transform="scale("+s+")";
+  f.style.height=Math.max((wrap.clientHeight)/s,200)+"px";
+  document.getElementById("zoomLbl").textContent=ZOOMS[zIdx].toFixed(1)+"×";
+}
+function zoom(dir){
+  if(!cur)return;
+  var n=Math.min(ZOOMS.length-1,Math.max(0,zIdx+dir));
+  if(n===zIdx)return;
+  zIdx=n;
+  localStorage.setItem("z_"+cur.id,ZOOMS[zIdx]);
+  document.getElementById("frameWrap").scrollLeft=0;
+  applyScale();
+}
+function openExt(){if(cur)window.open(cur.u,"_blank");}
+function hideSpin(){document.getElementById("spinner").style.display="none";}
+var hideTmr=null;
+document.getElementById("dash").addEventListener("load",function(){clearTimeout(hideTmr);setTimeout(hideSpin,300);});
+window.addEventListener("resize",applyScale);
+
+/* boot */
+onHash();
+</script>
+</body>
+</html>
