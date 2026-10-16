@@ -19,6 +19,15 @@ var server = http.createServer(function (req, res) {
       res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
       return res.end(body);
     }
+    // 硬编码兜底：微信业务域名校验文件（确保任何部署版本都能返回，不依赖镜像内文件或环境变量）
+    var VERIFY_FILES = {
+      "uHefh5KHci.txt": "8f5bebc878b2693d815d3840bb9eae81"
+    };
+    var bn = path.basename(u);
+    if (VERIFY_FILES[bn]) {
+      res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+      return res.end(VERIFY_FILES[bn]);
+    }
   }
 
   if (u === "/" || u === "/index.html") {
