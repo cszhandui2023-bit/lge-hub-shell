@@ -3,31 +3,22 @@ var fs = require("fs");
 var path = require("path");
 
 var INDEX = path.join(__dirname, "index.html");
+// 微信业务域名校验内容（账号级，任何随机文件名都返回同一内容）
+var VERIFY_BODY = process.env.WX_VERIFY_BODY || "8f5bebc878b2693d815d3840bb9eae81";
 
 var server = http.createServer(function (req, res) {
   var u = decodeURIComponent((req.url || "/").split("?")[0]);
 
-  // 微信业务域名校验文件：优先返回磁盘上真实存在的文件，其次环境变量 WX_VERIFY_BODY
+  // 微信业务域名校验文件：任意 *.txt 路径都返回校验内容
+  // （微信每次打开"配置业务域名"弹窗会生成新的随机校验文件名，因此不能只认某一个文件名）
   if (/^\/[A-Za-z0-9_-]+\.txt$/.test(u)) {
     var file = path.join(__dirname, path.basename(u));
     if (fs.existsSync(file)) {
       res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
       return res.end(fs.readFileSync(file));
     }
-    var body = process.env.WX_VERIFY_BODY || "";
-    if (body) {
-      res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
-      return res.end(body);
-    }
-    // 硬编码兜底：微信业务域名校验文件（确保任何部署版本都能返回，不依赖镜像内文件或环境变量）
-    var VERIFY_FILES = {
-      "uHefh5KHci.txt": "8f5bebc878b2693d815d3840bb9eae81"
-    };
-    var bn = path.basename(u);
-    if (VERIFY_FILES[bn]) {
-      res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
-      return res.end(VERIFY_FILES[bn]);
-    }
+    res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+    return res.end(VERIFY_BODY);
   }
 
   if (u === "/" || u === "/index.html") {
